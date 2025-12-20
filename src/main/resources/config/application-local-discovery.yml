@@ -1,0 +1,60 @@
+# ============================================
+# Local Development with Eureka
+# ============================================
+spring:
+  config:
+    activate:
+      on-profile: local-discovery
+
+eureka:
+  client:
+    enabled: true
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    registry-fetch-interval-seconds: 5
+    instance-info-replication-interval-seconds: 10
+  instance:
+    hostname: localhost
+    appname: api-gateway
+    instance-id: ${spring.application.name}:${server.port}
+    lease-renewal-interval-in-seconds: 5
+    lease-expiration-duration-in-seconds: 10
+    prefer-ip-address: false
+    metadata-map:
+      zone: local
+      profile: local-dev
+      version: 1.0.0-local
+
+
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+          predicates:
+            - name: Path
+              args:
+                pattern: "'/api/'+serviceId.toLowerCase()+'/**'"
+          filters:
+            - name: RewritePath
+              args:
+                regexp: "'/api/' + serviceId.toLowerCase() + '/(?<remaining>.*)'"
+                replacement: "'/${remaining}'"
+
+      routes:
+        - id: auth_service_eureka
+          uri: lb://auth-service   # Eureka service ID
+          predicates:
+            - Path=/api/v1/auth/**,/api/v1/oauth2/**
+          filters:
+            - StripPrefix=2
+
+        - id: device_service_eureka
+          uri: lb://device-service # Eureka service ID
+          predicates:
+            - Path=/api/v1/devices/**,/api/v1/sensors/**
+          filters:
+            - StripPrefix=2

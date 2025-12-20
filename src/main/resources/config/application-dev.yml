@@ -1,0 +1,41 @@
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+      base-path: /actuator
+  endpoint:
+    health:
+      access: read-only
+    info:
+      access: read-only
+    metrics:
+      access: read-only
+    prometheus:
+      access: read-only
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+        step: 30s
+        descriptions: true
+
+logging:
+  level:
+    org.springframework.cloud.gateway: TRACE
+    reactor.netty: DEBUG
+    org.springframework.security: DEBUG
+  request:
+    enabled: true
+    include-headers: true
+    include-query: true
+    include-payload: true
+    max-payload-size: 10KB
+  response:
+    enabled: true
+    include-headers: true

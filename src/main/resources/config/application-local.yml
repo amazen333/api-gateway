@@ -1,0 +1,98 @@
+# ============================================
+# Local Development Profile
+# ============================================
+spring:
+  profiles:
+    active: local-dev
+    include: local-discovery, local-redis
+  
+  config:
+    activate:
+      on-profile: local-dev
+  
+  # Disable cloud config for local dev
+  
+    config:
+      enabled: false
+  
+  # Local Redis configuration (using embedded if needed)
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2s
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+  
+  # Local service URLs (for testing without service discovery)
+  cloud:
+    gateway:
+      routes:
+        # Override routes for local testing
+        - id: auth_service_local
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/v1/auth/**,/api/v1/oauth2/**
+          filters:
+            - StripPrefix=2
+            - name: CircuitBreaker
+              args:
+                name: authService
+                fallbackUri: forward:/fallback/auth
+        
+        - id: device_service_local
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/v1/devices/**,/api/v1/sensors/**
+          filters:
+            - StripPrefix=2
+            - name: CircuitBreaker
+              args:
+                name: deviceService
+                fallbackUri: forward:/fallback/device
+        
+        # Mock services for testing
+        - id: mock_metrics_service
+          uri: http://localhost:8083
+          predicates:
+            - Path=/api/v1/metrics/**
+          filters:
+            - StripPrefix=2
+            - SetResponseHeader=X-Mocked-Service, true
+  
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # For local testing without Keycloak
+          jwk-set-uri: http://localhost:8081/auth/realms/iot-platform/protocol/openid-connect/certs
+          issuer-uri: http://localhost:8081/auth/realms/iot-platform
+
+# Disable Eureka for pure local testing
+eureka:
+  client:
+    enabled: false
+
+# Local logging
+logging:
+  level:
+    root: INFO
+    com.iotplatform: DEBUG
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.security: WARN
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(${PID}){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n%wEx"
+
+# Development properties
+dev:
+  mode: true
+  skip-authentication: false
+  mock-services: true
+
+server:
+  port: 8080
+  servlet:
+    context-path: /

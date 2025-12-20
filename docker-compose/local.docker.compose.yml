@@ -1,0 +1,113 @@
+version: '3.8'
+
+services:
+  # API Gateway
+  api-gateway:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=local-dev
+      - SERVER_PORT=8080
+      - REDIS_HOST=redis
+      - EUREKA_CLIENT_ENABLED=true
+      - EUREKA_SERVICE_URL=http://eureka-server:8761/eureka/
+    depends_on:
+      - redis
+      - eureka-server
+    networks:
+      - iot-local
+    volumes:
+      - ./logs:/app/logs
+      - ./config:/app/config
+
+  # Eureka Server for service discovery
+  eureka-server:
+    image: springcloud/eureka
+    ports:
+      - "8761:8761"
+    environment:
+      - SERVER_PORT=8761
+    networks:
+      - iot-local
+
+  # Redis for rate limiting
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    networks:
+      - iot-local
+
+  # Mock Auth Service (for testing)
+  mock-auth-service:
+    image: mockserver/mockserver:latest
+    ports:
+      - "8081:1080"
+    environment:
+      - MOCKSERVER_INITIALIZATION_JSON_PATH=/config/mock-auth.json
+    volumes:
+      - ./mock-config:/config
+    networks:
+      - iot-local
+    command: -serverPort 1080 -logLevel INFO
+
+  # Mock Device Service (for testing)
+  mock-device-service:
+    image: mockserver/mockserver:latest
+    ports:
+      - "8082:1080"
+    environment:
+      - MOCKSERVER_INITIALIZATION_JSON_PATH=/config/mock-device.json
+    volumes:
+      - ./mock-config:/config
+    networks:
+      - iot-local
+    command: -serverPort 1080 -logLevel INFO
+
+  # Prometheus for metrics
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    networks:
+      - iot-local
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources
+    networks:
+      - iot-local
+    depends_on:
+      - prometheus
+
+networks:
+  iot-local:
+    driver: bridge
+
+volumes:
+  redis-data:
+  prometheus-data:
+  grafana-data:

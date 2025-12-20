@@ -1,0 +1,40 @@
+server:
+  port: 8080
+  netty:
+    connection-timeout: 2s
+    idle-timeout: 15s
+    max-initial-line-length: 4096
+    max-header-size: 8192
+    initial-buffer-size: 64
+    prefer-direct: true     # Use direct buffers
+
+spring:
+  main:
+    banner-mode: off
+    lazy-initialization: true
+  
+  cloud:
+    gateway:
+      metrics:
+        enabled: false
+      
+      discovery:
+        locator:
+          enabled: false
+      
+      httpclient:
+        pool:
+          type: elastic
+          max-connections: 10000
+          max-idle-time: 30s
+          max-life-time: 60s
+        connect-timeout: 1000
+        response-timeout: 3000ms
+        compression: true
+        ssl:
+          use-insecure-trust-manager: false
+        proxy:
+          host: proxy.local        # Define proxy host
+          port: 8080               # Define proxy port
+          username: ${PROXY_USER}  # Optional, externalized
+          password: ${PROXY_PASS}  # Optional, externalized

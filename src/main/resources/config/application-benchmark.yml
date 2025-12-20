@@ -1,0 +1,113 @@
+# ============================================
+# BENCHMARK PROFILE - High Performance Testing
+# Lightweight config for stress/load testing
+# ============================================
+
+
+spring:
+  config:
+    activate:
+      on-profile: benchmark
+
+server:
+  port: 9090
+  shutdown: graceful
+
+  netty:
+    connection-timeout: 2s
+    idle-timeout: 30s
+    max-keep-alive-requests: 10000
+    keep-alive-timeout: 60s
+    max-connections: 5000
+    prefer-direct: true
+
+
+  main:
+    web-application-type: reactive
+    banner-mode: off
+    lazy-initialization: true
+
+  # Disable Redis in benchmark mode
+  data:
+    redis:
+      enabled: false
+
+  cloud:
+    gateway:
+      metrics:
+        enabled: false
+      discovery:
+        locator:
+          enabled: false
+      httpclient:
+        connect-timeout: 1000
+        response-timeout: 3000
+        pool:
+          type: elastic
+          max-connections: 5000
+          max-idle-time: 15s
+          max-life-time: 30s
+          metrics: false
+        compression:
+          enabled: true
+          min-response-size: 1024
+          excluded-user-agents:
+            - curl
+            - HTTPie
+            - Postman
+          mime-types:
+            - application/json
+            - text/plain
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
+      base-path: /internal
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  endpoint:
+    health:
+      show-details: always
+  server:
+    port: 9090
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  otlp:
+    tracing:
+      endpoint: XXXXXXXXXXXXXXXXX
+  
+    metrics:
+      export:
+        enabled: true
+        step: 15s
+
+logging:
+  level:
+    root: ERROR
+    com.iotplatform.gateway: INFO
+    org.springframework.cloud.gateway: WARN
+    reactor.netty: WARN
+  pattern:
+    console: "%d{HH:mm:ss.SSS} %-5level [%t] %logger{36} - %msg%n"
+
+app:
+  gateway:
+    performance:
+      enabled: true
+      worker-threads: 4
+      boss-threads: 2
+      max-initial-line-length: 4096
+      max-header-size: 8192
+      direct-buffers: true
+    cache:
+      jwt:
+        enabled: true
+        maximum-size: 10000
+        expire-after-write: 300s

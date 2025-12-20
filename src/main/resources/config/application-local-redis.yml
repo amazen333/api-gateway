@@ -1,0 +1,35 @@
+# ============================================
+# Local Redis Configuration
+# ============================================
+spring:
+  config:
+    activate:
+      on-profile: local-redis
+
+  redis:
+    # Use embedded Redis for development (if redis not installed)
+    embedded:
+      enabled: ${EMBEDDED_REDIS_ENABLED:false}
+      port: 6379
+    
+    # Or connect to local Redis instance
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    timeout: 2s
+    connect-timeout: 2s
+    
+    lettuce:
+      pool:
+        enabled: true
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+        max-wait: 2s
+      shutdown-timeout: 100ms
+
+# Rate limiting for local development
+spring.cloud.gateway.filter.request-rate-limiter.redis-rate-limiter:
+  replenishRate: ${RATE_LIMIT_REPLENISH_RATE:100}  # Higher for dev
+  burstCapacity: ${RATE_LIMIT_BURST_CAPACITY:200}
+  requestedTokens: ${RATE_LIMIT_REQUESTED_TOKENS:1}

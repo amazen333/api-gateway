@@ -1,0 +1,56 @@
+# ============================================
+# BENCHMARK DOCKERFILE - Lightweight build
+# For stress/load testing without external deps
+# ============================================
+
+# Build stage
+FROM maven:3.9.9-eclipse-temurin-17 AS builder
+
+WORKDIR /app
+
+# Copy pom.xml and Maven wrapper first (dependency caching)
+COPY pom.xml .
+COPY mvnw .
+COPY .mvn .mvn
+
+RUN chmod +x mvnw && ./mvnw dependency:go-offline -B
+
+# Copy source code
+COPY src src
+
+# Build application with benchmark profile
+RUN ./mvnw clean package -DskipTests -Pbenchmark \
+    -Dmaven.test.skip=true \
+    -Dmaven.javadoc.skip=true \
+    -Dmaven.source.skip=true
+
+# Runtime stage
+FROM eclipse-temurin:17-jre-alpine AS runtime
+
+ENV JAVA_OPTS="\
+    -XX:MaxRAMPercentage=75.0 \
+    -XX:+UseG1GC \
+    -XX:+UseStringDeduplication \
+    -XX:+ExitOnOutOfMemoryError \
+    -Dspring.profiles.active=benchmark \
+    -Dspring.main.lazy-initialization=true \
+    -Dlogging.level.root=ERROR \
+    -Dlogging.level.com.iotplatform.gateway=INFO"
+
+# Create non-root user
+RUN addgroup -S gateway && adduser -S gateway -G gateway
+
+WORKDIR /app
+
+# Copy built artifact
+COPY --from=builder /app/target/*.jar app.jar
+
+USER gateway
+
+# Health check (benchmark profile disables Redis, so only basic health)
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+    CMD wget -qO- http://localhost:9090/internal/status || exit 1
+
+EXPOSE 9090
+
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]
