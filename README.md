@@ -1,6 +1,12 @@
 # API Gateway
 *******************************************************
+
+
 # Directory Structure:
+
+
+
+
 
 api-gateway/
 ├── src/
@@ -20,3 +26,13 @@ api-gateway/
 ├── Makefile
 ├── run-local.sh
 └── README-local.md
+
+************************************************
+#### `api-gateway/`
+- **Purpose**: Single entry point, routing, and cross-cutting concerns
+- **Technology**: Spring Cloud Gateway
+- **Features**: Rate limiting, authentication, load balancing
+ 
+
+
+
