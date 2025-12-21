@@ -1,4 +1,4 @@
-Api-Gateway Features
+
 ************************************************
 #### `api-gateway/`
 - **Purpose**: Single entry point, routing, and cross-cutting concerns
